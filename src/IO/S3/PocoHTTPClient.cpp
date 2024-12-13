@@ -343,6 +343,8 @@ String getMethod(const Aws::Http::HttpRequest & request)
     }
 }
 
+bool isRedirect(const Poco::Net::HTTPResponse::HTTPStatus status) { return status == Poco::Net::HTTPResponse::HTTP_MOVED_PERMANENTLY  || status == Poco::Net::HTTPResponse::HTTP_FOUND || status == Poco::Net::HTTPResponse::HTTP_SEE_OTHER  || status == Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT; }
+
 void PocoHTTPClient::makeRequestInternalImpl(
     Aws::Http::HttpRequest & request,
     std::shared_ptr<PocoHTTPResponse> & response,
@@ -510,7 +512,7 @@ void PocoHTTPClient::makeRequestInternalImpl(
                 LOG_INFO(log, "Response status: {}, {}", status_code, poco_response.getReason());
             }
 
-            if (poco_response.getStatus() == Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT)
+            if (isRedirect(poco_response.getStatus()))
             {
                 auto location = poco_response.get("location");
                 remote_host_filter.checkURL(Poco::URI(location));

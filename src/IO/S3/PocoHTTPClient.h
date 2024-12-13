@@ -194,4 +194,6 @@ protected:
 
 }
 
+bool isRedirect(Poco::Net::HTTPResponse::HTTPStatus status);
+
 #endif

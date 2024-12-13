@@ -297,6 +297,17 @@ ReadWriteBufferFromHTTP::CallResult ReadWriteBufferFromHTTP::callWithRedirects(
                 " Redirects are restricted to prevent possible attack when a malicious server redirects to an internal resource, bypassing the authentication or firewall.",
                 initial_uri.toString(), max_redirects ? "increase the allowed maximum number of" : "allow");
 
+	 // Clear the Authorization header for the redirected request
+        auto auth_header = std::find_if(
+            http_header_entries.begin(),
+            http_header_entries.end(),
+            [](const HTTPHeaderEntry & entry) { return entry.name == "Authorization"; });
+
+        if (auth_header != http_header_entries.end())
+        {
+            http_header_entries.erase(auth_header);
+        }
+
         current_uri = uri_redirect;
         result = callImpl(response, method_, range, true);
     }
