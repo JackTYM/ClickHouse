@@ -9,6 +9,7 @@ namespace Setting
     extern const SettingsBool allow_aggregate_partitions_independently;
     extern const SettingsBool force_optimize_projection;
     extern const SettingsString force_optimize_projection_name;
+    extern const SettingsString force_use_projection_name;
     extern const SettingsBool optimize_aggregation_in_order;
     extern const SettingsBool optimize_distinct_in_order;
     extern const SettingsBool optimize_read_in_order;
@@ -80,6 +81,7 @@ QueryPlanOptimizationSettings QueryPlanOptimizationSettings::fromSettings(const 
     settings.optimize_projection = from[Setting::optimize_use_projections];
     settings.force_use_projection = settings.optimize_projection && from[Setting::force_optimize_projection];
     settings.force_projection_name = settings.optimize_projection ? from[Setting::force_optimize_projection_name].value : "";
+    settings.force_use_projection_name = from[Setting::force_use_projection_name].value;
     settings.optimize_use_implicit_projections = settings.optimize_projection && from[Setting::optimize_use_implicit_projections];
 
     return settings;
