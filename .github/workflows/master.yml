@@ -23,7 +23,6 @@ jobs:
           filter: tree:0
       - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip
           pip install boto3
       - name: Debug Info
         uses: ./.github/actions/debug
