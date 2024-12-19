@@ -1,0 +1,50 @@
+name: Build ClickHouse
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Update and install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git cmake ccache python3 ninja-build nasm yasm gawk lsb-release wget software-properties-common gnupg
+
+    - name: Install LLVM
+      run: |
+        sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+
+    - name: Set up Clang environment
+      run: |
+        echo "CC=clang-19" >> $GITHUB_ENV
+        echo "CXX=clang++-19" >> $GITHUB_ENV
+
+    - name: Install Rust nightly
+      run: |
+        rustup toolchain install nightly-2024-12-01
+        rustup default nightly-2024-12-01
+        rustup component add rust-src
+
+    - name: Clone ClickHouse repository
+      run: |
+        git clone --recursive --shallow-submodules https://github.com/JackTYM/ClickHouse.git
+
+    - name: Build ClickHouse
+      run: |
+        cd ClickHouse
+        mkdir build
+        cmake -S . -B build
+        cmake --build build -j 16
