@@ -1,18 +1,25 @@
 name: Build ClickHouse
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Set up caching
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo
+          ~/.rustup
+          ~/.ccache
+          build
+        key: ${{ runner.os }}-build-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
