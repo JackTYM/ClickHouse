@@ -148,62 +148,58 @@ void optimizeTreeSecondPass(const QueryPlanOptimizationSettings & optimization_s
 
     stack.push_back({.node = &root});
 
-    if (optimization_settings.force_projection_name != "") {
-        applied_projection_names.insert(optimization_settings.force_projection_name);
-    } else {
-        while (!stack.empty())
+    while (!stack.empty())
+    {
         {
+            /// NOTE: frame cannot be safely used after stack was modified.
+            auto & frame = stack.back();
+
+            if (frame.next_child == 0)
             {
-                /// NOTE: frame cannot be safely used after stack was modified.
-                auto & frame = stack.back();
-    
-                if (frame.next_child == 0)
-                {
-                    has_reading_from_mt |= typeid_cast<const ReadFromMergeTree *>(frame.node->step.get()) != nullptr;
-    
-                    /// Projection optimization relies on PK optimization
-                    if (optimization_settings.optimize_projection)
-                    {
-                        auto applied_projection = optimizeUseAggregateProjections(*frame.node, nodes, optimization_settings.optimize_use_implicit_projections);
-                        if (applied_projection)
-                            applied_projection_names.insert(*applied_projection);
-                    }
-    
-                    if (optimization_settings.aggregation_in_order)
-                        optimizeAggregationInOrder(*frame.node, nodes);
-                }
-    
-                /// Traverse all children first.
-                if (frame.next_child < frame.node->children.size())
-                {
-                    auto next_frame = Frame{.node = frame.node->children[frame.next_child]};
-                    ++frame.next_child;
-                    stack.push_back(next_frame);
-                    continue;
-                }
-            }
-    
-            if (optimization_settings.optimize_projection)
-            {
+                has_reading_from_mt |= typeid_cast<const ReadFromMergeTree *>(frame.node->step.get()) != nullptr;
+
                 /// Projection optimization relies on PK optimization
-                if (auto applied_projection = optimizeUseNormalProjections(stack, nodes))
+                if (optimization_settings.optimize_projection)
                 {
-                    applied_projection_names.insert(*applied_projection);
-    
-                    if (max_optimizations_to_apply && max_optimizations_to_apply < applied_projection_names.size())
-                        throw Exception(ErrorCodes::TOO_MANY_QUERY_PLAN_OPTIMIZATIONS,
-                                        "Too many projection optimizations applied to query plan. Current limit {}",
-                                        max_optimizations_to_apply);
-    
-                    /// Stack is updated after this optimization and frame is not valid anymore.
-                    /// Try to apply optimizations again to newly added plan steps.
-                    --stack.back().next_child;
-                    continue;
+                    auto applied_projection = optimizeUseAggregateProjections(*frame.node, nodes, optimization_settings.optimize_use_implicit_projections);
+                    if (applied_projection)
+                        applied_projection_names.insert(*applied_projection);
                 }
+
+                if (optimization_settings.aggregation_in_order)
+                    optimizeAggregationInOrder(*frame.node, nodes);
             }
-    
-            stack.pop_back();
+
+            /// Traverse all children first.
+            if (frame.next_child < frame.node->children.size())
+            {
+                auto next_frame = Frame{.node = frame.node->children[frame.next_child]};
+                ++frame.next_child;
+                stack.push_back(next_frame);
+                continue;
+            }
         }
+
+        if (optimization_settings.optimize_projection)
+        {
+            /// Projection optimization relies on PK optimization
+            if (auto applied_projection = optimizeUseNormalProjections(stack, nodes))
+            {
+                applied_projection_names.insert(*applied_projection);
+
+                if (max_optimizations_to_apply && max_optimizations_to_apply < applied_projection_names.size())
+                    throw Exception(ErrorCodes::TOO_MANY_QUERY_PLAN_OPTIMIZATIONS,
+                                    "Too many projection optimizations applied to query plan. Current limit {}",
+                                    max_optimizations_to_apply);
+
+                /// Stack is updated after this optimization and frame is not valid anymore.
+                /// Try to apply optimizations again to newly added plan steps.
+                --stack.back().next_child;
+                continue;
+            }
+        }
+
+        stack.pop_back();
     }
 
     if (optimization_settings.force_use_projection && has_reading_from_mt && applied_projection_names.empty())

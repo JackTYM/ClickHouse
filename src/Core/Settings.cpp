@@ -4066,11 +4066,6 @@ Possible values:
 
 - string: name of projection that used in a query
 )", 0) \
-    DECLARE(String, force_use_projection_name, "", R"(
-If it is set to a non-empty string, the projection is used
-Possible values:
-- string: name of projection to activate
-)", 0) \
     DECLARE(String, preferred_optimize_projection_name, "", R"(
 If it is set to a non-empty string, ClickHouse will try to apply specified projection in query.
 
